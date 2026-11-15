@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jon Snow: The Data Preprocessing Quest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .font-got {
+      font-family: 'Cinzel', serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+    /* Custom subtle scrollbar for workbench tables */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(56, 189, 248, 0.35); }
+      50% { box-shadow: 0 0 24px rgba(56, 189, 248, 0.75); }
+    }
+    .glow-ice {
+      animation: pulseGlow 2.4s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- TOP HEADER & HUD -->
+  <header class="w-full bg-slate-900/95 border-b border-slate-800 px-4 py-2.5 shadow-lg z-20">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Level Info -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-700 flex items-center justify-center font-got font-bold text-white shadow">
+          JS
+        </div>
+        <div>
+          <h1 class="font-got text-sm sm:text-base md:text-lg font-bold tracking-wider text-amber-400">
+            JON SNOW: THE DATA PREPROCESSING QUEST
+          </h1>
+          <p id="hud-level-subtitle" class="text-xs text-slate-400">
+            IDSE Interactive Curriculum • Press START to begin
+          </p>
+        </div>
+      </div>
+
+      <!-- Gameplay Stats Bar -->
+      <div id="hud-stats" class="hidden flex-wrap items-center gap-3 sm:gap-5 text-xs sm:text-sm">
+        <!-- Jon HP -->
+        <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <span class="font-semibold text-sky-400">JON HP</span>
+          <div class="w-20 sm:w-28 h-2.5 bg-slate-950 rounded-full overflow-hidden">
+            <div id="hud-jon-hp-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+          <span id="hud-jon-hp-text" class="font-mono-code font-bold text-emerald-400">100</span>
+        </div>
+
+        <!-- Boss HP -->
+        <div class="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <span id="hud-boss-name" class="font-semibold text-rose-400">BOSS</span>
+          <div class="w-20 sm:w-28 h-2.5 bg-slate-950 rounded-full overflow-hidden">
+            <div id="hud-boss-hp-bar" class="h-full bg-rose-500 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+          <span id="hud-boss-hp-text" class="font-mono-code font-bold text-rose-400">100</span>
+          <span id="hud-shield-badge" class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            SHIELDED
+          </span>
+        </div>
+
+        <!-- Clues & Score -->
+        <div class="flex items-center gap-3 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700">
+          <div>
+            <span class="text-slate-400">Scrolls:</span>
+            <span id="hud-scrolls" class="font-mono-code font-bold text-amber-400">0/3</span>
+          </div>
+          <div class="h-4 w-px bg-slate-700"></div>
+          <div>
+            <span class="text-slate-400">Score:</span>
+            <span id="hud-score" class="font-mono-code font-bold text-sky-400">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 flex flex-col lg:flex-row gap-4 relative">
+
+    <!-- LEFT / CENTER: 2D BATTLEFIELD CANVAS & ACTION BAR -->
+    <div class="flex-1 flex flex-col gap-3 min-w-0">
+      <!-- Contextual Hint Banner (Toggle with H) -->
+      <div id="hint-banner" class="hidden bg-indigo-950/90 border border-indigo-500/50 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-indigo-100 flex items-start justify-between gap-3 shadow-lg">
+        <div>
+          <span class="font-bold text-amber-400 uppercase tracking-wider mr-2">[Learning Hint]:</span>
+          <span id="hint-text">Collect all 3 battlefield data scrolls using Arrow Keys + SPACE, then press TAB or E to inspect the dataset.</span>
+        </div>
+        <button onclick="toggleHint()" class="text-indigo-300 hover:text-white font-bold px-2">✕</button>
+      </div>
+
+      <!-- Canvas Wrapper -->
+      <div class="relative w-full aspect-[16/10] max-h-[540px] bg-slate-900 rounded-2xl border-2 border-slate-800 overflow-hidden shadow-2xl">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Floating Status Toast inside Canvas -->
+        <div id="canvas-toast" class="pointer-events-none absolute bottom-3 left-3 right-3 bg-slate-950/85 backdrop-blur-md border border-slate-700/80 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-100 flex items-center justify-between shadow-lg">
+          <span id="toast-message">Use Arrow Keys / WASD to move Jon Snow. Press SPACE near glowing scrolls to collect data!</span>
+          <span class="hidden sm:inline font-mono-code text-xs text-sky-400">[TAB/E] Workbench • [H] Hint</span>
+        </div>
+
+        <!-- START SCREEN OVERLAY -->
+        <div id="screen-start" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
+          <div class="max-w-2xl space-y-5">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-sky-500/10 text-sky-400 border border-sky-500/30">
+              IDSE Interactive Game • Data Preprocessing
+            </span>
+            <h2 class="font-got text-2xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-500 to-rose-500">
+              JON SNOW: THE DATA PREPROCESSING QUEST
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Four villains guard corrupted battlefield intelligence across Westeros. Weapons alone cannot break their defenses—you must inspect, clean, transform, and validate real tabular datasets to shatter their shields!
+            </p>
+
+            <!-- 4 Level Cards Preview -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
+              <button onclick="startGame(1)" class="p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-sky-400 transition group">
+                <div class="text-[11px] font-bold text-sky-400">LVL 1 • AGE 19</div>
+                <div class="font-got text-xs font-bold text-white mt-0.5">Wildling King</div>
+                <div class="text-[11px] text-slate-400 mt-1">Raw Data & Schema</div>
+              </button>
+              <button onclick="startGame(2)" class="p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 transition group">
+                <div class="text-[11px] font-bold text-cyan-400">LVL 2 • AGE 21</div>
+                <div class="font-got text-xs font-bold text-white mt-0.5">The Night King</div>
+                <div class="text-[11px] text-slate-400 mt-1">Data Cleaning & NaNs</div>
+              </button>
+              <button onclick="startGame(3)" class="p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-rose-400 transition group">
+                <div class="text-[11px] font-bold text-rose-400">LVL 3 • AGE 22</div>
+                <div class="font-got text-xs font-bold text-white mt-0.5">Queen Cersei</div>
+                <div class="text-[11px] text-slate-400 mt-1">IQR, Encoding & Scale</div>
+              </button>
+              <button onclick="startGame(4)" class="p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-amber-400 transition group">
+                <div class="text-[11px] font-bold text-amber-400">LVL 4 • AGE 23</div>
+                <div class="font-got text-xs font-bold text-white mt-0.5">Daenerys</div>
+                <div class="text-[11px] text-slate-400 mt-1">Full Pipeline Mastery</div>
+              </button>
+            </div>
+
+            <!-- Controls Key Legend -->
+            <div class="flex flex-wrap justify-center gap-2 text-[11px] text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">↑↓←→ / WASD</strong> Move</span>
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">SPACE</strong> Collect / Strike</span>
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">TAB / E</strong> Data Workbench</span>
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">1-4</strong> Run Preprocessing</span>
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">ENTER</strong> Validate</span>
+              <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700"><strong class="text-amber-400">H</strong> Hint</span>
+            </div>
+
+            <button onclick="startGame(1)" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-got font-bold text-sm sm:text-base tracking-wider shadow-xl transition transform hover:scale-105">
+              START QUEST (LEVEL 1)
+            </button>
+          </div>
+        </div>
+
+        <!-- LEVEL TRANSITION / VICTORY / GAMEOVER OVERLAY -->
+        <div id="screen-modal-end" class="hidden absolute inset-0 bg-slate-950/94 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
+          <div class="max-w-xl space-y-4">
+            <div id="end-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              STAGE CLEARED
+            </div>
+            <h2 id="end-title" class="font-got text-2xl sm:text-4xl font-black text-amber-400">
+              WILDLING KING DEFEATED!
+            </h2>
+            <p id="end-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              You identified numerical vs categorical features and flagged corrupted rows!
+            </p>
+            <div id="victory-summary-grid" class="hidden grid-cols-1 sm:grid-cols-2 gap-2.5 text-left text-xs my-3">
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="font-bold text-sky-400">1. Raw Data & Schema (Age 19)</div>
+                <div class="text-slate-400 mt-1">Distinguished numerical vs categorical features & detected corrupt rows.</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="font-bold text-cyan-400">2. Data Cleaning (Age 21)</div>
+                <div class="text-slate-400 mt-1">Applied median imputation, deduplication, and string standardization.</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="font-bold text-rose-400">3. Data Transformation (Age 22)</div>
+                <div class="text-slate-400 mt-1">Handled IQR outliers, encoded categories, and normalized features to [0, 1].</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="font-bold text-amber-400">4. Pipeline Mastery (Age 23)</div>
+                <div class="text-slate-400 mt-1">Executed a complete end-to-end preprocessing pipeline on unseen dragon data.</div>
+              </div>
+            </div>
+            <div class="pt-2">
+              <button id="end-action-btn" onclick="handleEndAction()" class="px-7 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-got font-bold text-sm tracking-wider shadow-lg transition">
+                PROCEED TO LEVEL 2
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch / Quick Action Controls Bar (Works on PC click & Mobile tap) -->
+      <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        <button onclick="triggerCollectOrAttack()" class="col-span-2 sm:col-span-2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-amber-300 flex items-center justify-center gap-1.5 transition">
+          <span>⚔️ Collect / Strike</span>
+          <span class="text-[10px] text-slate-400 font-mono-code">[SPACE]</span>
+        </button>
+        <button onclick="toggleWorkbench()" class="col-span-2 sm:col-span-2 py-2.5 px-3 rounded-xl bg-sky-900/60 hover:bg-sky-800/70 border border-sky-500/40 text-xs font-semibold text-sky-200 flex items-center justify-center gap-1.5 transition glow-ice">
+          <span>📊 Data Workbench</span>
+          <span class="text-[10px] text-sky-300 font-mono-code">[TAB/E]</span>
+        </button>
+        <button onclick="toggleHint()" class="col-span-2 sm:col-span-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-indigo-300 flex items-center justify-center gap-1 transition">
+          <span>💡 Hint</span>
+          <span class="text-[10px] text-slate-400 font-mono-code">[H]</span>
+        </button>
+        <button onclick="resetCurrentLevel()" class="col-span-2 sm:col-span-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center justify-center gap-1 transition">
+          <span>↺ Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR: LIVE PYTHON & MISSION TRACKER -->
+    <aside class="w-full lg:w-96 flex flex-col gap-3">
+      <!-- Mission Checklist Card -->
+      <div class="bg-slate-900/95 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-got text-xs font-bold uppercase tracking-wider text-amber-400">
+            Active Mission Objectives
+          </h3>
+          <span id="mission-stage-badge" class="text-[11px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-sky-400">
+            Stage 1/4
+          </span>
+        </div>
+        <p id="mission-story" class="text-xs text-slate-400 mb-3 leading-relaxed">
+          Explore the snowy Wildling camp, collect 3 battlefield scrolls, and inspect the raw DataFrame structure.
+        </p>
+        <ul id="mission-checklist" class="space-y-2 text-xs">
+          <li class="flex items-center gap-2 text-slate-300">
+            <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px]">1</span>
+            <span>Collect all 3 battlefield data scrolls</span>
+          </li>
+          <li class="flex items-center gap-2 text-slate-300">
+            <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px]">2</span>
+            <span>Open Data Workbench ([TAB] or [E])</span>
+          </li>
+          <li class="flex items-center gap-2 text-slate-300">
+            <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px]">3</span>
+            <span>Run preprocessing steps & validate ([ENTER])</span>
+          </li>
+          <li class="flex items-center gap-2 text-slate-300">
+            <span class="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px]">4</span>
+            <span>Approach Boss and strike with Longclaw ([SPACE])</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Live Python Pandas / Scikit-Learn Execution Log -->
+      <div class="flex-1 bg-slate-900/95 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[230px]">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="font-mono-code text-xs font-bold text-slate-200">
+              PYTHON BACKEND LOG (pandas / sklearn)
+            </h3>
+          </div>
+          <span class="text-[10px] font-mono-code text-slate-500">live_pipeline.py</span>
+        </div>
+        <div id="python-log-feed" class="flex-1 bg-slate-950 rounded-xl p-3 border border-slate-800/90 font-mono-code text-[11px] text-emerald-400 overflow-y-auto space-y-2 max-h-64">
+          <div class="text-slate-500"># Ready. Collect battlefield scrolls to load DataFrame...</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- INTERACTIVE DATA PREPROCESSING WORKBENCH MODAL ([TAB] or [E]) -->
+  <div id="workbench-modal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-40 flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Workbench Header -->
+      <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="wb-level-tag" class="px-2 py-0.5 text-[11px] font-bold rounded bg-sky-500/20 text-sky-400 border border-sky-500/40">
+              LEVEL 1 WORKBENCH
+            </span>
+            <h2 id="wb-title" class="font-got text-base sm:text-lg font-bold text-amber-400">
+              Raw Battlefield Intelligence DataFrame
+            </h2>
+          </div>
+          <p id="wb-subtitle" class="text-xs text-slate-400 mt-0.5">
+            Use keys [1], [2], [3], [4] or click buttons below to transform the dataset, then press [ENTER] to validate.
+          </p>
+        </div>
+        <button onclick="toggleWorkbench(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono-code text-slate-300 border border-slate-700">
+          [ESC] Close
+        </button>
+      </div>
+
+      <!-- Workbench Body -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- Data Quality Metrics Strip -->
+        <div id="wb-metrics-bar" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400">Rows × Columns</div>
+            <div id="metric-shape" class="font-mono-code font-bold text-sm text-white mt-0.5">6 × 4</div>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400">Missing Values (NaN)</div>
+            <div id="metric-nulls" class="font-mono-code font-bold text-sm text-rose-400 mt-0.5">1</div>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400">Duplicate Rows</div>
+            <div id="metric-dups" class="font-mono-code font-bold text-sm text-amber-400 mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <div class="text-slate-400">Dataset Status</div>
+            <div id="metric-status" class="font-mono-code font-bold text-sm text-amber-300 mt-0.5">RAW / UNCLEAN</div>
+          </div>
+        </div>
+
+        <!-- Live Interactive DataFrame Table -->
+        <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-x-auto">
+          <table class="w-full text-left border-collapse font-mono-code text-xs">
+            <thead id="wb-table-head" class="bg-slate-800/80 text-slate-300 border-b border-slate-700">
+              <!-- Populated dynamically -->
+            </thead>
+            <tbody id="wb-table-body" class="divide-y divide-slate-800/80">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Visual Chart Panel (Used in Level 3 & 4 for Outlier / Scaling Visualization) -->
+        <div id="wb-chart-container" class="hidden bg-slate-950 rounded-xl border border-slate-800 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-sky-400">Feature Distribution & Scale Visualizer</span>
+            <span id="wb-chart-caption" class="text-[11px] font-mono-code text-slate-400">IQR Bounds & Feature Ranges</span>
+          </div>
+          <div id="wb-bars" class="space-y-2"></div>
+        </div>
+
+        <!-- Preprocessing Operations Control Deck (Keys 1-4) -->
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Preprocessing Operations (Press Number Keys 1–4 or Click)
+          </div>
+          <div id="wb-operations-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Populated dynamically per level -->
+          </div>
+        </div>
+
+        <!-- Workbench Feedback Banner -->
+        <div id="wb-feedback" class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono-code">
+          > Awaiting preprocessing command...
+        </div>
+      </div>
+
+      <!-- Workbench Footer -->
+      <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <span class="text-xs text-slate-400">
+          Complete all required steps, then validate to break the Boss's Shield!
+        </span>
+        <button id="wb-validate-btn" onclick="validateWorkbench()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-xs sm:text-sm tracking-wide shadow-lg transition">
+          [ENTER] Validate & Break Boss Shield
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * =========================================================================
+     * JON SNOW: THE DATA PREPROCESSING QUEST
+     * Complete 2D HTML5 Canvas Battlefield + Live DataFrame Preprocessing Engine
+     * =========================================================================
+     */
+
+    // --- 1. GAME STATE & CONFIGURATION ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const LEVEL_CONFIGS = {
+      1: {
+        age: 19,
+        title: "LEVEL 1: The Frozen North (Age 19)",
+        topic: "Raw Data & Schema Inspection",
+        bossName: "Wildling King",
+        theme: "snow",
+        story: "Beyond the Wall, Jon recovers Wildling scouting records. Inspect rows, numerical vs categorical features, and spot missing values.",
+        hint: "Collect all 3 scrolls [SPACE], open Workbench [TAB/E], press [1] to classify column dtypes, [2] to detect NaNs, then [ENTER] to break Wildling King's shield!",
+        pythonInit: "df = pd.read_csv('wildling_scouts.csv')\nprint(df.dtypes, df.isnull().sum())"
+      },
+      2: {
+        age: 21,
+        title: "LEVEL 2: The Army of the Dead (Age 21)",
+        topic: "Data Cleaning (NaNs, Duplicates, Case)",
+        bossName: "The Night King",
+        theme: "ice",
+        story: "At Hardhome, the Night King's undead roster contains missing ages, duplicate wights, and inconsistent weapon strings.",
+        hint: "In the Workbench: [1] Impute missing Age with Median (28), [2] Drop duplicate Soldier ID 103, [3] Standardize Weapon casing, then [ENTER]!",
+        pythonInit: "df = pd.read_csv('hardhome_army.csv')\n# Detected: 1 NaN, 1 duplicate row, inconsistent strings"
+      },
+      3: {
+        age: 22,
+        title: "LEVEL 3: Battle for the Iron Throne (Age 22)",
+        topic: "Transformation (IQR Outliers, Encoding, Scaling)",
+        bossName: "Queen Cersei",
+        theme: "redkeep",
+        story: "Cersei's spies injected extreme outliers and unscaled text categories into King's Landing defense intel.",
+        hint: "In the Workbench: [1] Remove IQR Outlier (Age=150), [2] Encode Weapon categories to numbers, [3] Min-Max Normalize features to [0,1], then [ENTER]!",
+        pythonInit: "from sklearn.preprocessing import LabelEncoder, MinMaxScaler\ndf = pd.read_csv('kings_landing_intel.csv')"
+      },
+      4: {
+        age: 23,
+        title: "LEVEL 4: The Dragon Queen (Age 23 - Final)",
+        topic: "End-to-End Preprocessing Pipeline",
+        bossName: "Daenerys Targaryen",
+        theme: "dragon",
+        story: "Dodge dragon fireballs while gathering Daenerys's master battle dataset, then execute the full preprocessing pipeline in order!",
+        hint: "Dodge fireballs! Collect 3 scrolls, open Workbench, and execute steps in sequence: [1] Clean Data -> [2] Remove IQR Outlier -> [3] Encode & Normalize -> [ENTER]!",
+        pythonInit: "pipeline = Pipeline([\n  ('clean', DataCleaner()),\n  ('outlier', IQRFilter()),\n  ('scale', MinMaxScaler())\n])"
+      }
+    };
+
+    let gameState = {
+      screen: 'START', // START, PLAYING, LEVEL_CLEAR, VICTORY, GAMEOVER
+      level: 1,
+      score: 0,
+      jon: { x: 110, y: 260, w: 34, h: 46, speed: 4.2, hp: 100, maxHp: 100, swingTimer: 0, dir: 1 },
+      boss: { x: 660, y: 230, w: 54, h: 68, hp: 100, maxHp: 100, shielded: true, hitFlash: 0, moveDir: 1 },
+      scrolls: [],
+      hazards: [],
+      particles: [],
+      keys: {},
+      workbenchOpen: false,
+      hintOpen: false,
+      // Live DataFrame state
+      df: [],
+      completedOps: new Set(),
+      dtypesTagged: false,
+      nullsHighlighted: false,
+      encoded: false,
+      normalized: false,
+      outliersRemoved: false
+    };
+
+    // --- 2. DATASET GENERATORS (REAL TABULAR DATA) ---
+    function createInitialDataset(level) {
+      if (level === 1) {
+        return [
+          { id: 101, age: 25, weapon: 'Sword', strength: 80 },
+          { id: 102, age: null, weapon: 'Bow', strength: 70 },
+          { id: 103, age: 30, weapon: 'Spear', strength: 90 },
+          { id: 104, age: 28, weapon: 'Sword', strength: 75 }
+        ];
+      } else if (level === 2) {
+        return [
+          { id: 101, age: 25, weapon: 'Sword', strength: 80 },
+          { id: 102, age: null, weapon: 'bow', strength: 70 },
+          { id: 103, age: 30, weapon: 'SWORD', strength: 90 },
+          { id: 103, age: 30, weapon: 'SWORD', strength: 90 },
+          { id: 104, age: 28, weapon: 'sword', strength: 75 }
+        ];
+      } else if (level === 3) {
+        return [
+          { id: 201, age: 24, weapon: 'Sword', strength: 52 },
+          { id: 202, age: 29, weapon: 'Bow', strength: 48 },
+          { id: 203, age: 150, weapon: 'Spear', strength: 200 }, // Extreme IQR Outlier
+          { id: 204, age: 26, weapon: 'Sword', strength: 50 },
+          { id: 205, age: 31, weapon: 'Bow', strength: 55 }
+        ];
+      } else {
+        // Level 4 Master Unseen Dataset combining all anomalies
+        return [
+          { id: 301, age: 22, weapon: 'sword', strength: 60 },
+          { id: 302, age: null, weapon: 'BOW', strength: 72 },
+          { id: 303, age: 28, weapon: 'Spear', strength: 84 },
+          { id: 303, age: 28, weapon: 'Spear', strength: 84 }, // Duplicate
+          { id: 304, age: 165, weapon: 'Sword', strength: 240 }, // Outlier
+          { id: 305, age: 34, weapon: 'bow', strength: 68 }
+        ];
+      }
+    }
+
+    // --- 3. LEVEL INITIALIZATION ---
+    function startGame(lvl = 1) {
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-modal-end').classList.add('hidden');
+      document.getElementById('hud-stats').classList.remove('hidden');
+      document.getElementById('hud-stats').classList.add('flex');
+      if (lvl === 1) gameState.score = 0;
+      loadLevel(lvl);
+    }
+
+    function resetCurrentLevel() {
+      if (gameState.screen === 'START') return;
+      loadLevel(gameState.level);
+      showToast(`Level ${gameState.level} reset! Collect all 3 data scrolls.`);
+    }
+
+    function loadLevel(lvl) {
+      gameState.level = lvl;
+      gameState.screen = 'PLAYING';
+      gameState.workbenchOpen = false;
+      document.getElementById('workbench-modal').classList.add('hidden');
+      document.getElementById('screen-modal-end').classList.add('hidden');
+
+      const cfg = LEVEL_CONFIGS[lvl];
+      gameState.jon = { x: 95, y: 240, w: 34, h: 46, speed: 4.3, hp: 100, maxHp: 100, swingTimer: 0, dir: 1 };
+      gameState.boss = { x: 670, y: 220, w: 56, h: 72, hp: 100, maxHp: 100, shielded: true, hitFlash: 0, moveDir: 1 };
+
+      // Spawn 3 collectible data scrolls
+      gameState.scrolls = [
+        { id: 1, x: 250, y: 120, collected: false },
+        { id: 2, x: 410, y: 360, collected: false },
+        { id: 3, x: 530, y: 150, collected: false }
+      ];
+
+      // Spawn level hazards (patrolling guards or dragon fireballs)
+      gameState.hazards = [];
+      if (lvl === 1) {
+        gameState.hazards.push({ x: 340, y: 100, r: 14, vx: 0, vy: 2.3, type: 'ice_spike' });
+      } else if (lvl === 2) {
+        gameState.hazards.push({ x: 320, y: 110, r: 15, vx: 0, vy: 2.8, type: 'wight' });
+        gameState.hazards.push({ x: 480, y: 370, r: 15, vx: 0, vy: -2.8, type: 'wight' });
+      } else if (lvl === 3) {
+        gameState.hazards.push({ x: 310, y: 90, r: 15, vx: 1.8, vy: 2.5, type: 'wildfire' });
+        gameState.hazards.push({ x: 500, y: 380, r: 15, vx: -1.8, vy: -2.5, type: 'wildfire' });
+      } else if (lvl === 4) {
+        gameState.hazards.push({ x: 640, y: 130, r: 14, vx: -4.2, vy: 1.2, type: 'dragonfire' });
+        gameState.hazards.push({ x: 640, y: 260, r: 14, vx: -4.8, vy: -0.8, type: 'dragonfire' });
+        gameState.hazards.push({ x: 640, y: 370, r: 14, vx: -3.9, vy: -1.5, type: 'dragonfire' });
+      }
+
+      // Reset DataFrame & Preprocessing flags
+      gameState.df = createInitialDataset(lvl);
+      gameState.completedOps = new Set();
+      gameState.dtypesTagged = false;
+      gameState.nullsHighlighted = false;
+      gameState.encoded = false;
+      gameState.normalized = false;
+      gameState.outliersRemoved = false;
+
+      // Update UI text & logs
+      document.getElementById('hud-level-subtitle').textContent = `${cfg.title} • ${cfg.topic}`;
+      document.getElementById('hud-boss-name').textContent = cfg.bossName.toUpperCase();
+      document.getElementById('mission-stage-badge').textContent = `Stage ${lvl}/4`;
+      document.getElementById('mission-story').textContent = cfg.story;
+      document.getElementById('hint-text').textContent = cfg.hint;
+
+      clearPythonLog();
+      logPython(cfg.pythonInit);
+      updateHUD();
+      updateChecklist();
+      showToast(`${cfg.title}: Collect all 3 Data Scrolls using Arrow Keys + SPACE!`);
+    }
+
+    // --- 4. LIVE DATA PREPROCESSING ENGINE (PANDAS / SKLEARN EQUIVALENTS) ---
+    function getDatasetStats(df) {
+      let nullCount = 0;
+      df.forEach(row => {
+        if (row.age === null || row.age === undefined || Number.isNaN(row.age)) nullCount++;
+        if (row.strength === null || row.strength === undefined || Number.isNaN(row.strength)) nullCount++;
+      });
+
+      const seenIds = new Set();
+      let dupCount = 0;
+      df.forEach(row => {
+        if (seenIds.has(row.id)) dupCount++;
+        else seenIds.add(row.id);
+      });
+
+      return { rows: df.length, nullCount, dupCount };
+    }
+
+    function executeOperation(opKey) {
+      const lvl = gameState.level;
+      const fb = document.getElementById('wb-feedback');
+
+      if (lvl === 1) {
+        if (opKey === 1) {
+          gameState.dtypesTagged = true;
+          gameState.completedOps.add(1);
+          logPython("df.dtypes\n# id: int64 (Numerical)\n# age: float64 (Numerical)\n# weapon: object (Categorical)\n# strength: int64 (Numerical)");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Schema Classified:</span> Identified Numerical columns (Age, Strength) vs Categorical column (Weapon).`;
+        } else if (opKey === 2) {
+          gameState.nullsHighlighted = true;
+          gameState.completedOps.add(2);
+          logPython("df[df.isnull().any(axis=1)]\n# Row index 1 (Soldier 102) has missing Age (NaN)!");
+          fb.innerHTML = `<span class="text-amber-400">✔ Corrupted Row Flagged:</span> Soldier ID 102 contains a missing Age value (NaN) requiring preprocessing.`;
+        }
+      } else if (lvl === 2) {
+        if (opKey === 1) {
+          // Median imputation on valid ages: [25, 30, 30, 28] -> sorted [25, 28, 30, 30] -> median 29 or [25,28,30] -> 28
+          const validAges = gameState.df.map(r => r.age).filter(v => v !== null).sort((a, b) => a - b);
+          const mid = Math.floor(validAges.length / 2);
+          const medianVal = validAges.length % 2 !== 0 ? validAges[mid] : Math.round((validAges[mid - 1] + validAges[mid]) / 2);
+          gameState.df.forEach(r => { if (r.age === null) r.age = medianVal; });
+          gameState.completedOps.add(1);
+          logPython(`median_age = df['Age'].median() # ${medianVal}\ndf['Age'].fillna(median_age, inplace=True)`);
+          fb.innerHTML = `<span class="text-emerald-400">✔ Median Imputation Applied:</span> Replaced NaN Age with median value (${medianVal}).`;
+        } else if (opKey === 2) {
+          const seen = new Set();
+          gameState.df = gameState.df.filter(r => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id);
+            return true;
+          });
+          gameState.completedOps.add(2);
+          logPython("df.drop_duplicates(subset=['Soldier_ID'], keep='first', inplace=True)");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Duplicates Removed:</span> Dropped repeated record for Soldier ID 103.`;
+        } else if (opKey === 3) {
+          gameState.df.forEach(r => {
+            r.weapon = r.weapon.charAt(0).toUpperCase() + r.weapon.slice(1).toLowerCase();
+          });
+          gameState.completedOps.add(3);
+          logPython("df['Weapon'] = df['Weapon'].str.strip().str.title()");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Categories Standardized:</span> Unified 'bow', 'SWORD', 'sword' -> 'Bow', 'Sword'.`;
+        }
+      } else if (lvl === 3) {
+        if (opKey === 1) {
+          // IQR Outlier Removal (Age 150, Strength 200)
+          gameState.df = gameState.df.filter(r => r.age <= 100 && r.strength <= 120);
+          gameState.outliersRemoved = true;
+          gameState.completedOps.add(1);
+          logPython("Q1, Q3 = df['Age'].quantile([0.25, 0.75])\nIQR = Q3 - Q1\ndf = df[df['Age'] <= Q3 + 1.5 * IQR] # Dropped Soldier 203 (Age=150)");
+          fb.innerHTML = `<span class="text-emerald-400">✔ IQR Outlier Removed:</span> Soldier 203 (Age=150, Strength=200) exceeded Upper Fence (Q3 + 1.5×IQR) and was removed.`;
+        } else if (opKey === 2) {
+          const map = { 'Sword': 0, 'Bow': 1, 'Spear': 2 };
+          gameState.df.forEach(r => {
+            if (typeof r.weapon === 'string') {
+              r.weapon_encoded = map[r.weapon] !== undefined ? map[r.weapon] : 0;
+            }
+          });
+          gameState.encoded = true;
+          gameState.completedOps.add(2);
+          logPython("le = LabelEncoder()\ndf['Weapon_Encoded'] = le.fit_transform(df['Weapon']) # Sword:0, Bow:1, Spear:2");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Categorical Encoding Complete:</span> Converted text weapons into numerical codes (Sword=0, Bow=1, Spear=2).`;
+        } else if (opKey === 3) {
+          if (!gameState.outliersRemoved) {
+            damageJon(10, "Warning (-10 HP): Normalizing BEFORE removing extreme outliers squashes all valid soldiers near 0.0! Remove outliers [1] first.");
+            fb.innerHTML = `<span class="text-rose-400">⚠ Order Warning (-10 HP):</span> Always remove extreme outliers [1] BEFORE Min-Max Normalization!`;
+            return;
+          }
+          const ages = gameState.df.map(r => r.age);
+          const strs = gameState.df.map(r => r.strength);
+          const minA = Math.min(...ages), maxA = Math.max(...ages);
+          const minS = Math.min(...strs), maxS = Math.max(...strs);
+          gameState.df.forEach(r => {
+            r.age_norm = maxA === minA ? 0 : Number(((r.age - minA) / (maxA - minA)).toFixed(2));
+            r.str_norm = maxS === minS ? 0 : Number(((r.strength - minS) / (maxS - minS)).toFixed(2));
+          });
+          gameState.normalized = true;
+          gameState.completedOps.add(3);
+          logPython("scaler = MinMaxScaler()\ndf[['Age_Norm', 'Str_Norm']] = scaler.fit_transform(df[['Age', 'Strength']])");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Min-Max Normalization Applied:</span> Scaled Age & Strength cleanly into [0.00, 1.00] range.`;
+        }
+      } else if (lvl === 4) {
+        if (opKey === 1) {
+          // Step 1: Clean (Impute NaN + Deduplicate + Standardize Case)
+          gameState.df.forEach(r => {
+            if (r.age === null) r.age = 28;
+            r.weapon = r.weapon.charAt(0).toUpperCase() + r.weapon.slice(1).toLowerCase();
+          });
+          const seen = new Set();
+          gameState.df = gameState.df.filter(r => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id);
+            return true;
+          });
+          gameState.completedOps.add(1);
+          logPython("# Step 1: Clean\ndf['Age'].fillna(df['Age'].median(), inplace=True)\ndf.drop_duplicates(inplace=True)\ndf['Weapon'] = df['Weapon'].str.title()");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Stage 1 (Cleaning) Complete:</span> Imputed NaN Age (28), removed duplicate ID 303, standardized Weapon strings.`;
+        } else if (opKey === 2) {
+          if (!gameState.completedOps.has(1)) {
+            damageJon(10, "Pipeline Order Error (-10 HP): Clean missing values & duplicates [1] before filtering outliers!");
+            fb.innerHTML = `<span class="text-rose-400">⚠ Pipeline Order Error (-10 HP):</span> Execute Step [1] Data Cleaning first.`;
+            return;
+          }
+          gameState.df = gameState.df.filter(r => r.age <= 100 && r.strength <= 150);
+          gameState.outliersRemoved = true;
+          gameState.completedOps.add(2);
+          logPython("# Step 2: IQR Outlier Filter\ndf = df[(df['Age'] <= 100) & (df['Strength'] <= 150)] # Dropped Soldier 304 (Age=165)");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Stage 2 (Outlier Filter) Complete:</span> Removed Soldier 304 (Age=165, Strength=240).`;
+        } else if (opKey === 3) {
+          if (!gameState.completedOps.has(2)) {
+            damageJon(10, "Pipeline Order Error (-10 HP): Filter outliers [2] before encoding & scaling!");
+            fb.innerHTML = `<span class="text-rose-400">⚠ Pipeline Order Error (-10 HP):</span> Execute Step [2] Outlier Removal before scaling.`;
+            return;
+          }
+          const map = { 'Sword': 0, 'Bow': 1, 'Spear': 2 };
+          const ages = gameState.df.map(r => r.age);
+          const strs = gameState.df.map(r => r.strength);
+          const minA = Math.min(...ages), maxA = Math.max(...ages);
+          const minS = Math.min(...strs), maxS = Math.max(...strs);
+          gameState.df.forEach(r => {
+            r.weapon_encoded = map[r.weapon] ?? 0;
+            r.age_norm = Number(((r.age - minA) / (maxA - minA)).toFixed(2));
+            r.str_norm = Number(((r.strength - minS) / (maxS - minS)).toFixed(2));
+          });
+          gameState.encoded = true;
+          gameState.normalized = true;
+          gameState.completedOps.add(3);
+          logPython("# Step 3: Encode & Scale\ndf['Weapon_Code'] = LabelEncoder().fit_transform(df['Weapon'])\ndf[['Age_Norm', 'Str_Norm']] = MinMaxScaler().fit_transform(df[['Age', 'Strength']])");
+          fb.innerHTML = `<span class="text-emerald-400">✔ Stage 3 (Encode & Scale) Complete:</span> Pipeline output ready for validation!`;
+        }
+      }
+
+      renderWorkbench();
+      updateChecklist();
+    }
+
+    function validateWorkbench() {
+      const lvl = gameState.level;
+      const requiredCount = lvl === 1 ? 2 : 3;
+      const fb = document.getElementById('wb-feedback');
+
+      if (gameState.completedOps.size < requiredCount) {
+        damageJon(15, `Validation Failed (-15 HP): Complete all ${requiredCount} preprocessing steps before validating!`);
+        fb.innerHTML = `<span class="text-rose-400">✖ Validation Failed (-15 HP):</span> Dataset still contains unresolved issues. Complete all steps first!`;
+        return;
+      }
+
+      // Success! Break Boss Shield
+      gameState.boss.shielded = false;
+      gameState.score += 250;
+      logPython("assert df.isnull().sum().sum() == 0\nprint('SUCCESS: Dataset validated! Boss shield shattered.')");
+      updateHUD();
+      updateChecklist();
+      toggleWorkbench(false);
+      showToast(`SHIELD SHATTERED! Approach ${LEVEL_CONFIGS[lvl].bossName} and press SPACE to strike with Longclaw!`);
+    }
+
+    // --- 5. WORKBENCH UI RENDERING ---
+    function toggleWorkbench(forceState) {
+      if (gameState.screen !== 'PLAYING') return;
+      const collected = gameState.scrolls.filter(s => s.collected).length;
+      if (collected < 3 && (forceState === undefined || forceState === true)) {
+        showToast(`Collect all 3 Data Scrolls first (${collected}/3 collected)!`);
+        return;
+      }
+
+      gameState.workbenchOpen = forceState !== undefined ? forceState : !gameState.workbenchOpen;
+      const modal = document.getElementById('workbench-modal');
+      if (gameState.workbenchOpen) {
+        modal.classList.remove('hidden');
+        renderWorkbench();
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function renderWorkbench() {
+      const lvl = gameState.level;
+      const cfg = LEVEL_CONFIGS[lvl];
+      const stats = getDatasetStats(gameState.df);
+
+      document.getElementById('wb-level-tag').textContent = `LEVEL ${lvl} • AGE ${cfg.age}`;
+      document.getElementById('wb-title').textContent = `${cfg.topic} — Live DataFrame`;
+
+      // Update Metrics Strip
+      const colCount = Object.keys(gameState.df[0] || {}).length;
+      document.getElementById('metric-shape').textContent = `${stats.rows} × ${colCount}`;
+      const nullEl = document.getElementById('metric-nulls');
+      nullEl.textContent = stats.nullCount;
+      nullEl.className = `font-mono-code font-bold text-sm mt-0.5 ${stats.nullCount > 0 ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const dupEl = document.getElementById('metric-dups');
+      dupEl.textContent = stats.dupCount;
+      dupEl.className = `font-mono-code font-bold text-sm mt-0.5 ${stats.dupCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`;
+
+      const requiredCount = lvl === 1 ? 2 : 3;
+      const isReady = gameState.completedOps.size >= requiredCount;
+      const statusEl = document.getElementById('metric-status');
+      statusEl.textContent = isReady ? 'READY TO VALIDATE' : 'NEEDS PREPROCESSING';
+      statusEl.className = `font-mono-code font-bold text-sm mt-0.5 ${isReady ? 'text-emerald-400' : 'text-amber-300'}`;
+
+      // Render Table Headers
+      const thead = document.getElementById('wb-table-head');
+      const hasEncoded = gameState.df.some(r => r.weapon_encoded !== undefined);
+      const hasNorm = gameState.df.some(r => r.age_norm !== undefined);
+
+      thead.innerHTML = `
+        <tr>
+          <th class="px-3 py-2.5">Soldier_ID ${gameState.dtypesTagged ? '<span class="text-[10px] text-sky-400">[int64]</span>' : ''}</th>
+          <th class="px-3 py-2.5">Age ${gameState.dtypesTagged ? '<span class="text-[10px] text-sky-400">[Numerical]</span>' : ''}</th>
+          <th class="px-3 py-2.5">Weapon ${gameState.dtypesTagged ? '<span class="text-[10px] text-amber-400">[Categorical]</span>' : ''}</th>
+          <th class="px-3 py-2.5">Strength ${gameState.dtypesTagged ? '<span class="text-[10px] text-sky-400">[Numerical]</span>' : ''}</th>
+          ${hasEncoded ? '<th class="px-3 py-2.5 text-purple-300">Weapon_Encoded</th>' : ''}
+          ${hasNorm ? '<th class="px-3 py-2.5 text-emerald-300">Age_Norm [0-1]</th><th class="px-3 py-2.5 text-emerald-300">Str_Norm [0-1]</th>' : ''}
+        </tr>
+      `;
+
+      // Render Table Rows
+      const tbody = document.getElementById('wb-table-body');
+      const seenIds = new Set();
+      tbody.innerHTML = gameState.df.map(row => {
+        const isDup = seenIds.has(row.id);
+        seenIds.add(row.id);
+        const hasNull = row.age === null;
+        const isOutlier = row.age > 100 || row.strength > 120;
+        const isBadCase = row.weapon !== 'Sword' && row.weapon !== 'Bow' && row.weapon !== 'Spear';
+
+        let rowBg = 'hover:bg-slate-900/70';
+        if (hasNull && gameState.nullsHighlighted) rowBg = 'bg-rose-950/60 border-l-4 border-rose-500';
+        else if (isDup) rowBg = 'bg-amber-950/40';
+        else if (isOutlier) rowBg = 'bg-rose-950/50';
+
+        return `
+          <tr class="${rowBg} transition">
+            <td class="px-3 py-2 font-semibold ${isDup ? 'text-amber-400' : 'text-slate-200'}">
+              ${row.id} ${isDup ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 ml-1">DUP</span>' : ''}
+            </td>
+            <td class="px-3 py-2 ${hasNull ? 'text-rose-400 font-bold' : isOutlier ? 'text-rose-400 font-bold' : 'text-slate-200'}">
+              ${hasNull ? 'NaN (Missing)' : row.age} ${isOutlier ? '<span class="text-[10px] px-1 rounded bg-rose-500/20 text-rose-300">OUTLIER</span>' : ''}
+            </td>
+            <td class="px-3 py-2 ${isBadCase ? 'text-amber-300' : 'text-slate-200'}">
+              '${row.weapon}'
+            </td>
+            <td class="px-3 py-2 ${isOutlier ? 'text-rose-400 font-bold' : 'text-slate-200'}">
+              ${row.strength}
+            </td>
+            ${hasEncoded ? `<td class="px-3 py-2 text-purple-300 font-bold">${row.weapon_encoded}</td>` : ''}
+            ${hasNorm ? `<td class="px-3 py-2 text-emerald-400 font-bold">${row.age_norm.toFixed(2)}</td><td class="px-3 py-2 text-emerald-400 font-bold">${row.str_norm.toFixed(2)}</td>` : ''}
+          </tr>
+        `;
+      }).join('');
+
+      // Render Visual Chart for Level 3 & 4
+      const chartBox = document.getElementById('wb-chart-container');
+      if (lvl === 3 || lvl === 4) {
+        chartBox.classList.remove('hidden');
+        const maxStrength = Math.max(...gameState.df.map(r => r.strength), 1);
+        document.getElementById('wb-bars').innerHTML = gameState.df.map(r => {
+          const pct = Math.min(100, Math.round((r.strength / maxStrength) * 100));
+          const isOut = r.strength > 120;
+          return `
+            <div class="flex items-center gap-2 text-[11px] font-mono-code">
+              <span class="w-16 text-slate-400">ID ${r.id}</span>
+              <div class="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden">
+                <div class="h-full ${isOut ? 'bg-rose-500' : gameState.normalized ? 'bg-emerald-400' : 'bg-sky-500'} transition-all duration-300" style="width: ${pct}%"></div>
+              </div>
+              <span class="w-20 text-right ${isOut ? 'text-rose-400 font-bold' : 'text-slate-300'}">
+                ${gameState.normalized ? `Norm: ${r.str_norm.toFixed(2)}` : `Str: ${r.strength}`}
+              </span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        chartBox.classList.add('hidden');
+      }
+
+      // Render Operations Deck
+      const opsGrid = document.getElementById('wb-operations-grid');
+      const opsByLevel = {
+        1: [
+          { key: 1, label: "[1] Classify Column Data Types (Numerical vs Categorical)", desc: "Inspect df.dtypes to separate numeric metrics from text labels." },
+          { key: 2, label: "[2] Detect & Highlight Missing Values (df.isnull())", desc: "Scan all records to locate incomplete soldier rows." }
+        ],
+        2: [
+          { key: 1, label: "[1] Impute Missing Age with Median (fillna)", desc: "Fill NaN Age using the robust median (28) of valid soldiers." },
+          { key: 2, label: "[2] Remove Duplicate Records (drop_duplicates)", desc: "Eliminate repeated Soldier ID 103 from the roster." },
+          { key: 3, label: "[3] Standardize Weapon Categories (str.title)", desc: "Normalize inconsistent casing ('bow', 'SWORD') into Title Case." }
+        ],
+        3: [
+          { key: 1, label: "[1] Detect & Remove IQR Outliers", desc: "Filter out Soldier 203 (Age=150, Strength=200) beyond Q3 + 1.5×IQR." },
+          { key: 2, label: "[2] Encode Categorical Weapons (LabelEncoder)", desc: "Map 'Sword', 'Bow', 'Spear' into numerical codes (0, 1, 2)." },
+          { key: 3, label: "[3] Min-Max Normalize Features to [0, 1]", desc: "Apply X' = (X - Xmin) / (Xmax - Xmin) on Age and Strength." }
+        ],
+        4: [
+          { key: 1, label: "[1] Stage 1: Clean (Impute NaN + Deduplicate + Case)", desc: "Fix missing Age (28), drop duplicate ID 303, and unify Weapon text." },
+          { key: 2, label: "[2] Stage 2: Filter IQR Extreme Outliers", desc: "Remove corrupted Soldier 304 (Age=165, Strength=240)." },
+          { key: 3, label: "[3] Stage 3: Encode Categories & Min-Max Scale", desc: "Transform Weapon text to integers and scale features to [0.00, 1.00]." }
+        ]
+      };
+
+      opsGrid.innerHTML = opsByLevel[lvl].map(op => {
+        const done = gameState.completedOps.has(op.key);
+        return `
+          <button onclick="executeOperation(${op.key})" class="p-3 rounded-xl text-left border transition ${done ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200' : 'bg-slate-950 hover:bg-slate-800/90 border-slate-700 text-slate-200'}">
+            <div class="flex items-center justify-between font-semibold text-xs">
+              <span>${op.label}</span>
+              <span class="text-xs">${done ? '✔' : '▶'}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">${op.desc}</p>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // --- 6. PLAYER ACTIONS & COMBAT ---
+    function triggerCollectOrAttack() {
+      if (gameState.screen !== 'PLAYING' || gameState.workbenchOpen) return;
+
+      const jon = gameState.jon;
+      jon.swingTimer = 14;
+
+      // 1. Check nearby scrolls
+      let collectedNow = false;
+      gameState.scrolls.forEach(s => {
+        if (!s.collected && Math.hypot(jon.x + jon.w / 2 - s.x, jon.y + jon.h / 2 - s.y) < 58) {
+          s.collected = true;
+          collectedNow = true;
+          gameState.score += 50;
+          spawnParticles(s.x, s.y, '#fbbf24', 14);
+          const total = gameState.scrolls.filter(x => x.collected).length;
+          logPython(`scroll_${s.id} = load_batch(${s.id}) # Collected ${total}/3 battlefield records`);
+          if (total === 3) {
+            showToast("All 3 Data Scrolls collected! Press [TAB] or [E] to open the Data Preprocessing Workbench!");
+          } else {
+            showToast(`Collected Data Scroll (${total}/3)!`);
+          }
+          updateHUD();
+          updateChecklist();
+        }
+      });
+
+      if (collectedNow) return;
+
+      // 2. Check proximity to Boss
+      const boss = gameState.boss;
+      const distBoss = Math.hypot((jon.x + jon.w / 2) - (boss.x + boss.w / 2), (jon.y + jon.h / 2) - (boss.y + boss.h / 2));
+      if (distBoss < 85) {
+        if (boss.shielded) {
+          damageJon(15, `Boss Shield Active (-15 HP)! Collect all 3 scrolls and validate the dataset in the Workbench [TAB] first!`);
+        } else {
+          boss.hp = Math.max(0, boss.hp - 50);
+          boss.hitFlash = 12;
+          gameState.score += 150;
+          spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#38bdf8', 22);
+          updateHUD();
+
+          if (boss.hp <= 0) {
+            handleBossDefeated();
+          } else {
+            showToast(`Direct Longclaw hit on ${LEVEL_CONFIGS[gameState.level].bossName}! Strike once more [SPACE]!`);
+          }
+        }
+      }
+    }
+
+    function damageJon(amount, msg) {
+      gameState.jon.hp = Math.max(0, gameState.jon.hp - amount);
+      spawnParticles(gameState.jon.x + 16, gameState.jon.y + 20, '#f43f5e', 14);
+      updateHUD();
+      showToast(msg);
+      if (gameState.jon.hp <= 0) {
+        gameState.screen = 'GAMEOVER';
+        const modal = document.getElementById('screen-modal-end');
+        document.getElementById('end-badge').textContent = 'DEFEATED';
+        document.getElementById('end-badge').className = 'inline-block px-3 py-1 rounded-full text-xs font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        document.getElementById('end-title').textContent = 'JON SNOW HAS FALLEN';
+        document.getElementById('end-desc').textContent = msg;
+        document.getElementById('victory-summary-grid').classList.add('hidden');
+        document.getElementById('end-action-btn').textContent = 'RETRY LEVEL';
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function handleBossDefeated() {
+      const lvl = gameState.level;
+      const modal = document.getElementById('screen-modal-end');
+      const summaryGrid = document.getElementById('victory-summary-grid');
+
+      if (lvl < 4) {
+        gameState.screen = 'LEVEL_CLEAR';
+        document.getElementById('end-badge').textContent = `LEVEL ${lvl} COMPLETE`;
+        document.getElementById('end-badge').className = 'inline-block px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        document.getElementById('end-title').textContent = `${LEVEL_CONFIGS[lvl].bossName.toUpperCase()} DEFEATED!`;
+        document.getElementById('end-desc').textContent = `Mastered: ${LEVEL_CONFIGS[lvl].topic}. Current Score: ${gameState.score}. Ready for Level ${lvl + 1}?`;
+        summaryGrid.classList.add('hidden');
+        document.getElementById('end-action-btn').textContent = `ADVANCE TO LEVEL ${lvl + 1}`;
+      } else {
+        gameState.screen = 'VICTORY';
+        document.getElementById('end-badge').textContent = 'GRAND VICTORY • IDSE MASTER';
+        document.getElementById('end-badge').className = 'inline-block px-3 py-1 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        document.getElementById('end-title').textContent = 'THE SEVEN KINGDOMS ARE SAVED!';
+        document.getElementById('end-desc').textContent = `You defeated all 4 bosses using end-to-end Data Preprocessing! Final Score: ${gameState.score} pts.`;
+        summaryGrid.classList.remove('hidden');
+        summaryGrid.classList.add('grid');
+        document.getElementById('end-action-btn').textContent = 'PLAY AGAIN FROM LEVEL 1';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function handleEndAction() {
+      if (gameState.screen === 'LEVEL_CLEAR') {
+        loadLevel(gameState.level + 1);
+      } else if (gameState.screen === 'GAMEOVER') {
+        loadLevel(gameState.level);
+      } else {
+        startGame(1);
+      }
+    }
+
+    // --- 7. HUD, CHECKLIST & LOG HELPERS ---
+    function updateHUD() {
+      const jonPct = (gameState.jon.hp / gameState.jon.maxHp) * 100;
+      document.getElementById('hud-jon-hp-bar').style.width = `${jonPct}%`;
+      document.getElementById('hud-jon-hp-text').textContent = gameState.jon.hp;
+
+      const bossPct = (gameState.boss.hp / gameState.boss.maxHp) * 100;
+      document.getElementById('hud-boss-hp-bar').style.width = `${bossPct}%`;
+      document.getElementById('hud-boss-hp-text').textContent = gameState.boss.hp;
+
+      const shieldBadge = document.getElementById('hud-shield-badge');
+      if (gameState.boss.shielded) {
+        shieldBadge.textContent = 'SHIELDED';
+        shieldBadge.className = 'px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      } else {
+        shieldBadge.textContent = 'VULNERABLE';
+        shieldBadge.className = 'px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+      }
+
+      const collected = gameState.scrolls.filter(s => s.collected).length;
+      document.getElementById('hud-scrolls').textContent = `${collected}/3`;
+      document.getElementById('hud-score').textContent = gameState.score;
+    }
+
+    function updateChecklist() {
+      const collected = gameState.scrolls.filter(s => s.collected).length === 3;
+      const reqOps = gameState.level === 1 ? 2 : 3;
+      const opsDone = gameState.completedOps.size >= reqOps;
+      const shieldBroken = !gameState.boss.shielded;
+
+      const steps = [
+        { done: collected, text: "Collect all 3 battlefield data scrolls [SPACE]" },
+        { done: opsDone, text: "Run all preprocessing steps in Workbench [1-3]" },
+        { done: shieldBroken, text: "Validate DataFrame to break Boss Shield [ENTER]" },
+        { done: gameState.boss.hp <= 0, text: `Defeat ${LEVEL_CONFIGS[gameState.level].bossName} with Longclaw [SPACE]` }
+      ];
+
+      document.getElementById('mission-checklist').innerHTML = steps.map((st, idx) => `
+        <li class="flex items-center gap-2 ${st.done ? 'text-emerald-400 line-through opacity-80' : 'text-slate-300'}">
+          <span class="w-4 h-4 rounded-full border ${st.done ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'border-slate-600'} flex items-center justify-center text-[10px] font-bold">
+            ${st.done ? '✓' : idx + 1}
+          </span>
+          <span>${st.text}</span>
+        </li>
+      `).join('');
+    }
+
+    function logPython(codeStr) {
+      const feed = document.getElementById('python-log-feed');
+      const block = document.createElement('pre');
+      block.className = 'whitespace-pre-wrap text-emerald-300 bg-slate-900/90 p-2 rounded border border-slate-800';
+      block.textContent = codeStr;
+      feed.appendChild(block);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function clearPythonLog() {
+      document.getElementById('python-log-feed').innerHTML = '';
+    }
+
+    function showToast(msg) {
+      document.getElementById('toast-message').textContent = msg;
+    }
+
+    function toggleHint() {
+      gameState.hintOpen = !gameState.hintOpen;
+      const banner = document.getElementById('hint-banner');
+      if (gameState.hintOpen) banner.classList.remove('hidden');
+      else banner.classList.add('hidden');
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = 1 + Math.random() * 3.5;
+        gameState.particles.push({
+          x, y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd,
+          life: 24 + Math.random() * 14,
+          color
+        });
+      }
+    }
+
+    // --- 8. KEYBOARD EVENT LISTENERS ---
+    window.addEventListener('keydown', (e) => {
+      gameState.keys[e.code] = true;
+
+      if (e.code === 'Tab' || e.code === 'KeyE') {
+        if (gameState.screen === 'PLAYING') {
+          e.preventDefault();
+          toggleWorkbench();
+        }
+      } else if (e.code === 'Escape') {
+        if (gameState.workbenchOpen) toggleWorkbench(false);
+      } else if (e.code === 'KeyH') {
+        toggleHint();
+      } else if (e.code === 'Space') {
+        if (gameState.screen === 'PLAYING' && !gameState.workbenchOpen) {
+          e.preventDefault();
+          triggerCollectOrAttack();
+        }
+      } else if (e.code === 'Enter') {
+        if (gameState.screen === 'START') {
+          startGame(1);
+        } else if (gameState.workbenchOpen) {
+          e.preventDefault();
+          validateWorkbench();
+        } else if (['LEVEL_CLEAR', 'VICTORY', 'GAMEOVER'].includes(gameState.screen)) {
+          handleEndAction();
+        }
+      } else if (gameState.workbenchOpen) {
+        if (e.code === 'Digit1' || e.code === 'Numpad1') executeOperation(1);
+        if (e.code === 'Digit2' || e.code === 'Numpad2') executeOperation(2);
+        if (e.code === 'Digit3' || e.code === 'Numpad3') executeOperation(3);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      gameState.keys[e.code] = false;
+    });
+
+    // --- 9. CANVAS RESIZING & 2D GAME LOOP ---
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = 800;
+      canvas.height = 500;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- PRE-LOAD IMAGES ---
+    const bgImage = new Image();
+    bgImage.src = 'back.png';
+
+    const jonImage = new Image();
+    jonImage.src = 'snow1.png';
+
+    let hurtCooldown = 0;
+
+    function updatePhysics() {
+      if (gameState.screen !== 'PLAYING' || gameState.workbenchOpen) return;
+
+      const jon = gameState.jon;
+      const keys = gameState.keys;
+      if (hurtCooldown > 0) hurtCooldown--;
+      if (jon.swingTimer > 0) jon.swingTimer--;
+      if (gameState.boss.hitFlash > 0) gameState.boss.hitFlash--;
+
+      // Jon movement
+      if (keys['ArrowLeft'] || keys['KeyA']) { jon.x -= jon.speed; jon.dir = -1; }
+      if (keys['ArrowRight'] || keys['KeyD']) { jon.x += jon.speed; jon.dir = 1; }
+      if (keys['ArrowUp'] || keys['KeyW']) { jon.y -= jon.speed; }
+      if (keys['ArrowDown'] || keys['KeyS']) { jon.y += jon.speed; }
+
+      // Arena bounds
+      jon.x = Math.max(24, Math.min(740, jon.x));
+      jon.y = Math.max(40, Math.min(415, jon.y));
+
+      // Boss subtle patrol
+      const boss = gameState.boss;
+      boss.y += boss.moveDir * 1.1;
+      if (boss.y < 80 || boss.y > 350) boss.moveDir *= -1;
+
+      // Update hazards
+      gameState.hazards.forEach(h => {
+        h.x += h.vx;
+        h.y += h.vy;
+
+        if (h.type === 'dragonfire') {
+          if (h.x < 30) {
+            h.x = boss.x - 10;
+            h.y = boss.y + 20 + (Math.random() * 40 - 20);
+          }
+          if (h.y < 50 || h.y > 430) h.vy *= -1;
+        } else {
+          if (h.x < 180 || h.x > 610) h.vx *= -1;
+          if (h.y < 60 || h.y > 420) h.vy *= -1;
+        }
+
+        // Collision with Jon
+        const dist = Math.hypot((jon.x + jon.w / 2) - h.x, (jon.y + jon.h / 2) - h.y);
+        if (dist < h.r + 16 && hurtCooldown === 0) {
+          hurtCooldown = 45;
+          damageJon(10, "Hit by enemy hazard (-10 HP)! Use Arrow Keys to dodge.");
+        }
+      });
+
+      // Update particles
+      gameState.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+      });
+      gameState.particles = gameState.particles.filter(p => p.life > 0);
+    }
+
+    function drawArena() {
+      const theme = LEVEL_CONFIGS[gameState.level].theme;
+
+      // Background: use L1_background.webp image for all levels, overlaid with theme-specific tints
+      if (bgImage.complete && bgImage.naturalWidth > 0) {
+        ctx.drawImage(bgImage, 0, 0, 800, 500);
+        // Apply theme-specific colour overlay for visual variety per level
+        const overlays = {
+          snow:     'rgba(15, 28, 46, 0.18)',
+          ice:      'rgba(9, 25, 38, 0.30)',
+          redkeep:  'rgba(28, 16, 20, 0.35)',
+          dragon:   'rgba(26, 13, 10, 0.30)'
+        };
+        ctx.fillStyle = overlays[theme] || 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0, 0, 800, 500);
+      } else {
+        // Fallback solid colour while image loads
+        ctx.fillStyle = '#0f1c2e';
+        ctx.fillRect(0, 0, 800, 500);
+      }
+
+      // Extra theme details drawn on top of background
+      if (theme === 'ice') {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(120, 60); ctx.lineTo(280, 210); ctx.lineTo(230, 410);
+        ctx.moveTo(520, 50); ctx.lineTo(440, 260); ctx.lineTo(610, 420);
+        ctx.stroke();
+      } else if (theme === 'redkeep') {
+        ctx.strokeStyle = 'rgba(244, 63, 94, 0.12)';
+        ctx.lineWidth = 1;
+        for (let x = 40; x < 760; x += 60) {
+          ctx.strokeRect(x, 45, 55, 405);
+        }
+      }
+
+      // Draw Data Scrolls
+      const pulse = Math.sin(Date.now() / 220) * 4;
+      gameState.scrolls.forEach(s => {
+        if (s.collected) return;
+        ctx.save();
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 14 + pulse;
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.roundRect(s.x - 13, s.y - 15, 26, 30, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#fef3c7';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Data lines icon on scroll
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(s.x - 7, s.y - 7, 14, 3);
+        ctx.fillRect(s.x - 7, s.y - 1, 14, 3);
+        ctx.fillRect(s.x - 7, s.y + 5, 9, 3);
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fde68a';
+        ctx.font = 'bold 10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(`DATA #${s.id}`, s.x, s.y - 21);
+        ctx.restore();
+      });
+
+      // Draw Hazards
+      gameState.hazards.forEach(h => {
+        ctx.save();
+        if (h.type === 'dragonfire' || h.type === 'wildfire') {
+          ctx.shadowColor = '#f97316';
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, h.r * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#e0f2fe';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      // Draw Boss Character
+      const boss = gameState.boss;
+      ctx.save();
+      const bossColors = {
+        1: '#92400e', // Wildling King furs
+        2: '#0284c7', // Night King ice armor
+        3: '#be123c', // Queen Cersei crimson gown
+        4: '#b91c1c'  // Daenerys Targaryen
+      };
+      ctx.fillStyle = boss.hitFlash > 0 ? '#ffffff' : bossColors[gameState.level];
+      ctx.beginPath();
+      ctx.roundRect(boss.x, boss.y, boss.w, boss.h, 10);
+      ctx.fill();
+
+      // Crown / Horns detail
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(boss.x + 10, boss.y - 8, boss.w - 20, 8);
+
+      // Boss Shield Aura
+      if (boss.shielded) {
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, 48 + pulse * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(boss.x + boss.w / 2, boss.y + boss.h / 2, 46, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 11px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(LEVEL_CONFIGS[gameState.level].bossName.toUpperCase(), boss.x + boss.w / 2, boss.y - 14);
+      ctx.restore();
+
+      // Draw Jon Snow — use john.webp sprite
+      const jon = gameState.jon;
+      ctx.save();
+      if (jonImage.complete && jonImage.naturalWidth > 0) {
+        const dw = (jon.w + 10) * 2.4;
+        const dh = (jon.h + 10) * 2.4;
+        const dx = jon.x - (dw - jon.w) / 2;
+        const dy = jon.y - (dh - jon.h);
+        // Flip horizontally when facing left
+        if (jon.dir === -1) {
+          ctx.translate(dx + dw, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(jonImage, 0, dy, dw, dh);
+        } else {
+          ctx.drawImage(jonImage, dx, dy, dw, dh);
+        }
+      } else {
+        // Fallback: drawn character while image loads
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(jon.x, jon.y, jon.w, jon.h, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(jon.x + 3, jon.y + 8, jon.w - 6, 10);
+        ctx.fillStyle = '#fed7aa';
+        ctx.beginPath();
+        ctx.arc(jon.x + jon.w / 2, jon.y + 6, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Longclaw Valyrian Steel Sword (always drawn on top of sprite)
+      ctx.strokeStyle = jon.swingTimer > 0 ? '#38bdf8' : '#cbd5e1';
+      ctx.lineWidth = jon.swingTimer > 0 ? 4 : 3;
+      ctx.beginPath();
+      const swordStartX = jon.dir === 1 ? jon.x + jon.w : jon.x;
+      const swordEndX = jon.dir === 1 ? swordStartX + (jon.swingTimer > 0 ? 28 : 16) : swordStartX - (jon.swingTimer > 0 ? 28 : 16);
+      ctx.moveTo(swordStartX, jon.y + 24);
+      ctx.lineTo(swordEndX, jon.y + (jon.swingTimer > 0 ? 12 : 18));
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 10px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`JON (${LEVEL_CONFIGS[gameState.level].age}y)`, jon.x + jon.w / 2, jon.y - 12);
+      ctx.restore();
+
+      // Draw Particles
+      gameState.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life / 35);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function gameLoop() {
+      updatePhysics();
+      drawArena();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start loop
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
