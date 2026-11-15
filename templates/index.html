@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Predictive Maintenance AI — Industrial ML Platform</title>
+  <meta name="description" content="Interactive data science platform for industrial milling machine predictive maintenance using the UCI AI4I 2020 dataset."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="bx bx-cog"></i></div>
+    <div class="brand-text">
+      <span class="brand-title">PredMaint<span class="brand-accent">AI</span></span>
+      <span class="brand-sub">Industrial ML Platform</span>
+    </div>
+  </div>
+
+  <div class="sidebar-progress-wrap">
+    <div class="sp-label">
+      <span>Pipeline Progress</span>
+      <span id="progress-fraction">0 / 9</span>
+    </div>
+    <div class="sp-bar-bg"><div class="sp-bar-fill" id="progress-bar" style="width:0%"></div></div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="#sec-problem"    class="nav-item active" data-target="problem">
+      <i class="bx bx-task nav-icon"></i><span>Problem Statement</span>
+      <span class="nav-dot" id="dot-problem"></span>
+    </a>
+    <a href="#sec-load"       class="nav-item" data-target="load">
+      <i class="bx bx-data nav-icon"></i><span>Data Loading</span>
+      <span class="nav-dot" id="dot-load"></span>
+    </a>
+    <a href="#sec-preprocess" class="nav-item" data-target="preprocess">
+      <i class="bx bx-wrench nav-icon"></i><span>Preprocessing</span>
+      <span class="nav-dot" id="dot-preprocess"></span>
+    </a>
+    <a href="#sec-eda"        class="nav-item" data-target="eda">
+      <i class="bx bx-search-alt nav-icon"></i><span>EDA</span>
+      <span class="nav-dot" id="dot-eda"></span>
+    </a>
+    <a href="#sec-split"      class="nav-item" data-target="split">
+      <i class="bx bx-git-branch nav-icon"></i><span>Data Split</span>
+      <span class="nav-dot" id="dot-split"></span>
+    </a>
+    <a href="#sec-train"      class="nav-item" data-target="train">
+      <i class="bx bx-brain nav-icon"></i><span>Model Training</span>
+      <span class="nav-dot" id="dot-train"></span>
+    </a>
+    <a href="#sec-tune"       class="nav-item" data-target="tune">
+      <i class="bx bx-target-lock nav-icon"></i><span>Hyper-Tuning</span>
+      <span class="nav-dot" id="dot-tune"></span>
+    </a>
+    <a href="#sec-evaluate"   class="nav-item" data-target="evaluate">
+      <i class="bx bx-line-chart nav-icon"></i><span>Evaluation</span>
+      <span class="nav-dot" id="dot-evaluate"></span>
+    </a>
+    <a href="#sec-features"   class="nav-item" data-target="features">
+      <i class="bx bx-bar-chart-alt-2 nav-icon"></i><span>Feature Importance</span>
+      <span class="nav-dot" id="dot-features"></span>
+    </a>
+    <a href="#sec-errors"     class="nav-item" data-target="errors">
+      <i class="bx bx-error-circle nav-icon"></i><span>Error Analysis</span>
+      <span class="nav-dot" id="dot-errors"></span>
+    </a>
+    <a href="#sec-code"       class="nav-item" data-target="code">
+      <i class="bx bx-code-block nav-icon"></i><span>Code Viewer</span>
+      <span class="nav-dot nav-dot-static"></span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button id="run-all-btn" class="run-all-btn">
+      <i class="bx bx-play-circle"></i> Run Full Pipeline
+    </button>
+    <div id="server-status" class="server-status offline">
+      <span class="status-dot-sm"></span> Connecting…
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════ -->
+<main id="main-content">
+
+  <!-- ── SECTION 1: Problem Statement ─────────────────────────── -->
+  <section id="sec-problem" class="sec">
+    <div class="sec-header no-run">
+      <div class="sec-badge">01</div>
+      <div class="sec-title-group">
+        <h2>Problem Statement</h2>
+        <p class="sec-desc">Industrial predictive maintenance overview, objectives &amp; dataset</p>
+      </div>
+    </div>
+
+    <div class="sec-body">
+      <!-- Hero metrics -->
+      <div class="hero-metric-grid">
+        <div class="hero-metric accent-orange tilt">
+          <div class="hm-val">0.8511</div>
+          <div class="hm-label">Test F1-Score</div>
+          <div class="hm-sub">On untouched holdout</div>
+        </div>
+        <div class="hero-metric accent-rust">
+          <div class="hm-val">0.8742</div>
+          <div class="hm-label">Test PR-AUC</div>
+          <div class="hm-sub">Precision-recall area</div>
+        </div>
+        <div class="hero-metric accent-orange">
+          <div class="hm-val">93.02%</div>
+          <div class="hm-label">Alert Precision</div>
+          <div class="hm-sub">True alarm rate</div>
+        </div>
+        <div class="hero-metric accent-crimson">
+          <div class="hm-val">40 / 51</div>
+          <div class="hm-label">Failures Caught</div>
+          <div class="hm-sub">On test set</div>
+        </div>
+      </div>
+
+      <!-- Challenge box -->
+      <div class="insight-box warn">
+        <div class="ib-title"><i class="bx bx-bolt-circle"></i> The Core Challenge — Class Imbalance</div>
+        <p>Out of every 100 machine operating cycles, only <strong>~3 fail</strong>. A model that always predicts "healthy" would score <strong>96.61% accuracy</strong> yet catch <strong>0% of real breakdowns</strong>. We need <strong>Precision, Recall &amp; F1</strong> — not raw accuracy.</p>
+      </div>
+
+      <!-- Problem objectives -->
+      <div class="objectives-grid">
+        <div class="obj-card">
+          <div class="obj-num">1</div>
+          <div>
+            <strong>Leak-Free Pipeline</strong>
+            <p>Remove 5 diagnostic fault flags that directly define the target — if kept, accuracy is artificially 100%.</p>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-num">2</div>
+          <div>
+            <strong>Physics-Driven Features</strong>
+            <p>Translate raw sensor readings into meaningful engineering quantities: heat margin, mechanical power, cumulative strain.</p>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-num">3</div>
+          <div>
+            <strong>Fair Model Comparison</strong>
+            <p>Benchmark a linear baseline against two tree ensembles using 5-fold stratified cross-validation.</p>
+          </div>
+        </div>
+        <div class="obj-card">
+          <div class="obj-num">4</div>
+          <div>
+            <strong>High Practical Performance</strong>
+            <p>Reach F1 ≥ 0.80 and PR-AUC ≥ 0.85 on an untouched 15% holdout while keeping false alarms near zero.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset table -->
+      <div class="theory-label">📋 Dataset: UCI AI4I 2020 Predictive Maintenance (10,000 × 14)</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Column</th><th>Type</th><th>Range / Values</th><th>Role</th><th>Plain Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>UDI &amp; Product ID</td><td>ID</td><td>1–10,000 / L,M,H</td><td class="badge badge-id">Dropped</td><td>Row index — zero predictive signal</td></tr>
+            <tr><td>Type</td><td>Categorical</td><td>L (50%), M (30%), H (20%)</td><td class="badge badge-feat">Feature</td><td>Material quality tier</td></tr>
+            <tr><td>Air temperature [K]</td><td>Numeric</td><td>295.3 – 304.5 K</td><td class="badge badge-feat">Feature</td><td>Room temperature around machine</td></tr>
+            <tr><td>Process temperature [K]</td><td>Numeric</td><td>305.7 – 313.8 K</td><td class="badge badge-feat">Feature</td><td>Internal cutting temperature</td></tr>
+            <tr><td>Rotational speed [rpm]</td><td>Numeric</td><td>1,168 – 2,886 rpm</td><td class="badge badge-feat">Feature</td><td>Spindle speed</td></tr>
+            <tr><td>Torque [Nm]</td><td>Numeric</td><td>3.8 – 76.6 Nm</td><td class="badge badge-feat">Feature</td><td>Twisting force applied by motor</td></tr>
+            <tr><td>Tool wear [min]</td><td>Numeric</td><td>0 – 253 min</td><td class="badge badge-feat">Feature</td><td>Minutes the current tool has been used</td></tr>
+            <tr class="row-target"><td><strong>Machine failure</strong></td><td>Binary</td><td>0 (9,661), 1 (339)</td><td class="badge badge-target">Target ⭐</td><td><strong>1 = broke down; 0 = ran safely</strong></td></tr>
+            <tr><td>TWF, HDF, PWF, OSF, RNF</td><td>Binary</td><td>0 or 1</td><td class="badge badge-leak">Leakage ⚠</td><td>Sub-failure flags — logical OR = target</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pipeline flow -->
+      <div class="pipeline-flow-wrap">
+        <div class="pipeline-label">Analysis Pipeline</div>
+        <div class="pipeline-flow" id="pipeline-flow">
+          <div class="pf-step" data-step="load"><div class="pf-icon"><i class="bx bx-data"></i></div><div class="pf-name">Load</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="preprocess"><div class="pf-icon"><i class="bx bx-wrench"></i></div><div class="pf-name">Clean</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="eda"><div class="pf-icon"><i class="bx bx-search-alt"></i></div><div class="pf-name">EDA</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="split"><div class="pf-icon"><i class="bx bx-git-branch"></i></div><div class="pf-name">Split</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="train"><div class="pf-icon"><i class="bx bx-brain"></i></div><div class="pf-name">Train</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="tune"><div class="pf-icon"><i class="bx bx-target-lock"></i></div><div class="pf-name">Tune</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="evaluate"><div class="pf-icon"><i class="bx bx-line-chart"></i></div><div class="pf-name">Evaluate</div></div>
+          <div class="pf-arrow">›</div>
+          <div class="pf-step" data-step="errors"><div class="pf-icon"><i class="bx bx-error-circle"></i></div><div class="pf-name">Audit</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 2: Data Loading ───────────────────────────────── -->
+  <section id="sec-load" class="sec" data-section="load">
+    <div class="sec-header">
+      <div class="sec-badge">02</div>
+      <div class="sec-title-group">
+        <h2>Data Loading &amp; Audit</h2>
+        <p class="sec-desc">Download from UCI, check shape, missing values &amp; class balance</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-load"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-load" data-section="load"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-info-circle"></i> What This Step Does</div>
+        <p>Loads the <strong>AI4I 2020 Predictive Maintenance Dataset</strong> (10,000 rows × 14 columns) from the UCI ML Repository. If the CSV is already cached locally, it reads from disk. Then audits the data for missing values, duplicates and class distribution.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="load"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-load"><pre><code class="language-python" id="code-txt-load"></code></pre></div>
+      <div class="results-area" id="results-load">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to load the dataset and audit it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3: Preprocessing ─────────────────────────────── -->
+  <section id="sec-preprocess" class="sec" data-section="preprocess">
+    <div class="sec-header">
+      <div class="sec-badge">03</div>
+      <div class="sec-title-group">
+        <h2>Data Preprocessing &amp; Feature Engineering</h2>
+        <p class="sec-desc">Remove leakage, engineer physics-based features, audit statistics</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-preprocess"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-preprocess" data-section="preprocess"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box danger">
+        <div class="ib-title"><i class="bx bx-shield-x"></i> Target Leakage — Critical Step</div>
+        <p>The 5 failure sub-flags (TWF, HDF, PWF, OSF, RNF) are <strong>post-breakdown diagnostic codes</strong>. Their logical OR <em>equals</em> the target exactly — keeping them gives fake 100% accuracy but is completely useless in production. We remove all 5.</p>
+      </div>
+      <div class="fe-formula-grid">
+        <div class="fe-card">
+          <div class="fe-name">Temp_Diff_K</div>
+          <div class="fe-formula">Process Temp − Air Temp</div>
+          <div class="fe-desc">Heat dissipation margin. A small gap means cooling is insufficient → overheating.</div>
+        </div>
+        <div class="fe-card">
+          <div class="fe-name">Power_W</div>
+          <div class="fe-formula">Torque × (RPM × 2π / 60)</div>
+          <div class="fe-desc">True mechanical power (Watts). Captures both low-speed stalling and high-speed overload.</div>
+        </div>
+        <div class="fe-card">
+          <div class="fe-name">Overstrain_Index</div>
+          <div class="fe-formula">Tool wear × Torque</div>
+          <div class="fe-desc">Cumulative strain product. A dull tool under high force is primed to snap or jam.</div>
+        </div>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="preprocess"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-preprocess"><pre><code class="language-python" id="code-txt-preprocess"></code></pre></div>
+      <div class="results-area" id="results-preprocess">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to execute preprocessing. <em>Requires: Data Loading</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4: EDA ────────────────────────────────────────── -->
+  <section id="sec-eda" class="sec" data-section="eda">
+    <div class="sec-header">
+      <div class="sec-badge">04</div>
+      <div class="sec-title-group">
+        <h2>Exploratory Data Analysis</h2>
+        <p class="sec-desc">Interactive distributions, correlations &amp; failure-mode breakdown</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-eda"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-eda" data-section="eda"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-bar-chart-square"></i> What To Look For</div>
+        <p>Compare <strong>healthy vs. failure</strong> distributions for each sensor. If engineered features (Power_W, Overstrain_Index) show clearer separation than raw sensors, our feature engineering is working. The correlation heatmap will show the strong RPM ↔ Torque inverse coupling (r = −0.88).</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="eda"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-eda"><pre><code class="language-python" id="code-txt-eda"></code></pre></div>
+      <div class="results-area" id="results-eda">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to generate all EDA charts. <em>Requires: Preprocessing</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 5: Split ──────────────────────────────────────── -->
+  <section id="sec-split" class="sec" data-section="split">
+    <div class="sec-header">
+      <div class="sec-badge">05</div>
+      <div class="sec-title-group">
+        <h2>Stratified Train / Val / Test Split</h2>
+        <p class="sec-desc">70% Train · 15% Validation · 15% Untouched Test (all stratified)</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-split"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-split" data-section="split"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-git-branch"></i> Why Stratified Splitting?</div>
+        <p>With only 3.39% failures, a random split could accidentally place all failures in one partition. <strong>Stratified splitting</strong> ensures each of Train, Validation, and Test maintains the same 3.39% failure rate. The <strong>Test set is locked away</strong> until the very end — zero leakage.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="split"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-split"><pre><code class="language-python" id="code-txt-split"></code></pre></div>
+      <div class="results-area" id="results-split">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to create the stratified splits. <em>Requires: Preprocessing</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 6: Training ───────────────────────────────────── -->
+  <section id="sec-train" class="sec" data-section="train">
+    <div class="sec-header">
+      <div class="sec-badge">06</div>
+      <div class="sec-title-group">
+        <h2>Model Training &amp; Cross-Validation</h2>
+        <p class="sec-desc">Three models benchmarked with 5-fold stratified CV · ~1 min</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-train"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-train" data-section="train"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="model-cards-grid">
+        <div class="model-desc-card" style="border-top-color:#D4D4D4">
+          <div class="mdc-name">Logistic Regression</div>
+          <div class="mdc-role">Baseline</div>
+          <div class="mdc-desc">Draws a single flat decision boundary across standardised features. Class weights compensate for imbalance. Tests whether a linear rule is sufficient.</div>
+        </div>
+        <div class="model-desc-card" style="border-top-color:#FF4500">
+          <div class="mdc-name">Random Forest</div>
+          <div class="mdc-role">Approach 1</div>
+          <div class="mdc-desc">200 independent decision trees trained on random subsets of data and features, then majority-vote. Naturally captures non-linear failure zones.</div>
+        </div>
+        <div class="model-desc-card" style="border-top-color:#D9381E">
+          <div class="mdc-name">Gradient Boosting</div>
+          <div class="mdc-role">Approach 2</div>
+          <div class="mdc-desc">Sequential tree building: each new tree focuses on correcting the mistakes of all previous trees. Powerful but slower — tuned via GridSearchCV.</div>
+        </div>
+      </div>
+      <div class="insight-box warn">
+        <div class="ib-title"><i class="bx bx-time-five"></i> This step takes ~60 seconds</div>
+        <p>Training all 3 models + 5-fold CV takes roughly 1 minute. The loading indicator will update when complete.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="train"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-train"><pre><code class="language-python" id="code-txt-train"></code></pre></div>
+      <div class="results-area" id="results-train">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to train all models. <em>Requires: Data Split</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 7: Tuning ─────────────────────────────────────── -->
+  <section id="sec-tune" class="sec" data-section="tune">
+    <div class="sec-header">
+      <div class="sec-badge">07</div>
+      <div class="sec-title-group">
+        <h2>Hyperparameter Tuning</h2>
+        <p class="sec-desc">GridSearchCV on Gradient Boosting · 8 combos × 5 folds = 40 fits · ~2 min</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-tune"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-tune" data-section="tune"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-slider"></i> Grid Search Parameters</div>
+        <div class="param-grid-display">
+          <div class="pgd-item"><code>n_estimators</code><span>[150, 250]</span></div>
+          <div class="pgd-item"><code>max_depth</code><span>[3, 4]</span></div>
+          <div class="pgd-item"><code>learning_rate</code><span>[0.05, 0.1]</span></div>
+        </div>
+        <p class="mt-sm">Scoring metric: <strong>F1-score</strong> (penalises both missed failures and false alarms equally). Inner CV uses the same 5-fold stratified split as training.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="tune"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-tune"><pre><code class="language-python" id="code-txt-tune"></code></pre></div>
+      <div class="results-area" id="results-tune">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to execute grid search. <em>Requires: Model Training</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 8: Evaluation ─────────────────────────────────── -->
+  <section id="sec-evaluate" class="sec" data-section="evaluate">
+    <div class="sec-header">
+      <div class="sec-badge">08</div>
+      <div class="sec-title-group">
+        <h2>Final Model Evaluation</h2>
+        <p class="sec-desc">Precision-Recall curves · Confusion matrix · Full classification report</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-evaluate"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-evaluate" data-section="evaluate"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-info-circle"></i> Why Precision-Recall, Not ROC?</div>
+        <p>With 96.6% healthy samples, ROC-AUC is dominated by the abundant negative class and looks artificially optimistic. <strong>PR-AUC</strong> focuses solely on the minority failure class — it directly answers: <em>"Of all our alerts, how many are real? And of all real failures, how many did we catch?"</em></p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="evaluate"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-evaluate"><pre><code class="language-python" id="code-txt-evaluate"></code></pre></div>
+      <div class="results-area" id="results-evaluate">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to evaluate on the untouched test set. <em>Requires: Tuning</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 9: Feature Importance ─────────────────────────── -->
+  <section id="sec-features" class="sec" data-section="features">
+    <div class="sec-header">
+      <div class="sec-badge">09</div>
+      <div class="sec-title-group">
+        <h2>Feature Importance</h2>
+        <p class="sec-desc">Which sensors and engineered features drove the tuned Gradient Boosting model?</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-features"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-features" data-section="features"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box info">
+        <div class="ib-title"><i class="bx bx-bar-chart-alt-2"></i> Gradient Boosting Importances</div>
+        <p>Gradient Boosting reports feature importances as the <strong>total reduction in F1-score impurity</strong> each feature provides across all 250 trees. Engineered features (highlighted in <span style="color:#FF4500">orange-red</span>) are expected to rank highly — if they do, our domain-knowledge feature engineering was justified.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="features"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-features"><pre><code class="language-python" id="code-txt-features"></code></pre></div>
+      <div class="results-area" id="results-features">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to view feature importances. <em>Requires: Tuning</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 10: Error Analysis ────────────────────────────── -->
+  <section id="sec-errors" class="sec" data-section="errors">
+    <div class="sec-header">
+      <div class="sec-badge">10</div>
+      <div class="sec-title-group">
+        <h2>Error Analysis</h2>
+        <p class="sec-desc">Inspect every missed failure (FN) &amp; false alarm (FP) on the test set</p>
+      </div>
+      <div class="sec-actions">
+        <div class="sec-status-badge" id="status-errors"><span class="sdot"></span><span>Not Run</span></div>
+        <button class="run-btn" id="run-btn-errors" data-section="errors"><i class="bx bx-play"></i> Run</button>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="insight-box warn">
+        <div class="ib-title"><i class="bx bx-bug"></i> Why Inspect Errors?</div>
+        <p>A model's <strong>mistakes reveal its limits</strong>. False Negatives (missed failures) are operationally costly — the machine breaks down. False Positives (unnecessary alerts) waste maintenance labour. By examining the sub-failure types (TWF, HDF, etc.) inside missed cases, we understand which failure physics the model hasn't mastered.</p>
+      </div>
+      <div class="code-toggle-wrap">
+        <button class="code-toggle-btn" data-code="errors"><i class="bx bx-code-alt"></i> View Code</button>
+      </div>
+      <div class="code-block-wrap hidden" id="code-errors"><pre><code class="language-python" id="code-txt-errors"></code></pre></div>
+      <div class="results-area" id="results-errors">
+        <div class="results-placeholder"><i class="bx bx-play-circle"></i><p>Click <strong>Run</strong> to audit model errors. <em>Requires: Evaluation</em></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 11: Code Viewer ────────────────────────────────── -->
+  <section id="sec-code" class="sec">
+    <div class="sec-header no-run">
+      <div class="sec-badge">11</div>
+      <div class="sec-title-group">
+        <h2>Full Source Code Viewer</h2>
+        <p class="sec-desc">Browse all pipeline code sections with syntax highlighting</p>
+      </div>
+    </div>
+    <div class="sec-body">
+      <div class="code-viewer-tabs" id="code-viewer-tabs">
+        <button class="cvt-btn active" data-tab="cv-load">Load</button>
+        <button class="cvt-btn" data-tab="cv-preprocess">Preprocess</button>
+        <button class="cvt-btn" data-tab="cv-eda">EDA</button>
+        <button class="cvt-btn" data-tab="cv-split">Split</button>
+        <button class="cvt-btn" data-tab="cv-train">Train</button>
+        <button class="cvt-btn" data-tab="cv-tune">Tune</button>
+        <button class="cvt-btn" data-tab="cv-evaluate">Evaluate</button>
+        <button class="cvt-btn" data-tab="cv-features">Features</button>
+        <button class="cvt-btn" data-tab="cv-errors">Errors</button>
+      </div>
+      <div class="code-viewer-content">
+        <div class="cv-toolbar">
+          <span class="cv-filename" id="cv-filename">load_dataset.py</span>
+          <button class="cv-copy-btn" id="cv-copy-btn"><i class="bx bx-copy"></i> Copy</button>
+        </div>
+        <pre class="cv-pre"><code class="language-python" id="cv-code-display"></code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast notifications -->
+<div id="toast-container"></div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" class="hidden">
+  <div class="loading-modal">
+    <div class="loading-spinner"></div>
+    <div class="loading-title" id="loading-title">Running Pipeline…</div>
+    <div class="loading-sub" id="loading-sub">This may take a few minutes</div>
+    <div class="loading-timer" id="loading-timer">0s</div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
